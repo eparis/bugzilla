@@ -139,12 +139,22 @@ type Flag struct {
 	Requestee string `json:"requestee,omitempty"`
 }
 
+// BugComment contains the fields used when updating a comment on a Bug. See API documentation at:
+// https://bugzilla.readthedocs.io/en/latest/api/core/v1/bug.html#update-bug
+type BugComment struct {
+	Body     string `json:"body,omitempty"`
+	Private  bool   `json:"is_private,omitempty"`
+	Markdown bool   `json:"is_markdown,omitempty"`
+}
+
 // BugUpdate contains fields to update on a Bug. See API documentation at:
 // https://bugzilla.readthedocs.io/en/latest/api/core/v1/bug.html#update-bug
 type BugUpdate struct {
 	// Status is the current status of the bug.
-	Status     string `json:"status,omitempty"`
-	Resolution string `json:"resolution,omitempty"`
+	Status        string     `json:"status,omitempty"`
+	Resolution    string     `json:"resolution,omitempty"`
+	TargetRelease string     `json:"target_release,omitempty"`
+	Comment       BugComment `json:"comment,omitempty"`
 }
 
 // ExternalBug contains details about an external bug linked to a Bugzilla bug.
