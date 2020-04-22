@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +38,7 @@ const (
 type Client interface {
 	Endpoint() string
 	GetBug(id int) (*Bug, error)
+	Search(query Query) ([]*Bug, error)
 	GetExternalBugPRsOnBug(id int) ([]ExternalBug, error)
 	UpdateBug(id int, update BugUpdate) error
 	AddPullRequestAsExternalBug(id int, org, repo string, num int) (bool, error)
@@ -65,13 +67,13 @@ func (c *client) Endpoint() string {
 	return c.endpoint
 }
 
-// GetBug retrieves a Bug from the server
-// https://bugzilla.readthedocs.io/en/latest/api/core/v1/bug.html#get-bug
-func (c *client) GetBug(id int) (*Bug, error) {
-	logger := c.logger.WithFields(logrus.Fields{methodField: "GetBug", "id": id})
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/rest/bug/%d", c.endpoint, id), nil)
+func (c *client) getBugs(url string, values *url.Values, logger *logrus.Entry) ([]*Bug, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
+	}
+	if values != nil {
+		req.URL.RawQuery = values.Encode()
 	}
 	raw, err := c.request(req, logger)
 	if err != nil {
@@ -83,10 +85,22 @@ func (c *client) GetBug(id int) (*Bug, error) {
 	if err := json.Unmarshal(raw, &parsedResponse); err != nil {
 		return nil, fmt.Errorf("could not unmarshal response body: %v", err)
 	}
-	if len(parsedResponse.Bugs) != 1 {
-		return nil, fmt.Errorf("did not get one bug, but %d: %v", len(parsedResponse.Bugs), parsedResponse)
+	return parsedResponse.Bugs, nil
+}
+
+// GetBug retrieves a Bug from the server
+// https://bugzilla.readthedocs.io/en/latest/api/core/v1/bug.html#get-bug
+func (c *client) GetBug(id int) (*Bug, error) {
+	logger := c.logger.WithFields(logrus.Fields{methodField: "GetBug", "id": id})
+	url := fmt.Sprintf("%s/rest/bug/%d", c.endpoint, id)
+	bugs, err := c.getBugs(url, nil, logger)
+	if err != nil {
+		return nil, err
 	}
-	return parsedResponse.Bugs[0], nil
+	if len(bugs) != 1 {
+		return nil, fmt.Errorf("did not get one bug, but %d: %v", len(bugs), bugs)
+	}
+	return bugs[0], nil
 }
 
 // GetExternalBugPRsOnBug retrieves external bugs on a Bug from the server

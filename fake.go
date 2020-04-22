@@ -48,6 +48,16 @@ func (c *Fake) GetBug(id int) (*Bug, error) {
 	return nil, &requestError{statusCode: http.StatusNotFound, message: "bug not registered in the fake"}
 }
 
+// Search doesn't really work, it always returns all bugs
+func (c *Fake) Search(query Query) ([]*Bug, error) {
+	bugs := []*Bug{}
+	for i, _ := range c.Bugs {
+		bug := c.Bugs[i]
+		bugs = append(bugs, &bug)
+	}
+	return bugs, nil
+}
+
 // GetBug retrieves the external bugs for the Bugzilla bug,
 // if registered, or an error, if set, or responds with an
 // error that matches IsNotFound
