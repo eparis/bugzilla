@@ -24,26 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type AdvancedQuery struct {
-	Field  string
-	Op     string
-	Value  string
-	Negate bool
-}
-
-type Query struct {
-	Classification []string
-	Product        []string
-	Status         []string
-	Severity       []string
-	Keywords       []string
-	KeywordsType   string
-	TargetRelease  []string
-	Advanced       []AdvancedQuery
-	IncludedFields []string
-	Raw            string
-}
-
+// Values returns a url.Values strcture based on the query search parameters.
 func (q *Query) Values() *url.Values {
 	values := &url.Values{}
 	for _, val := range q.Classification {

@@ -200,3 +200,28 @@ type NewExternalBugIdentifier struct {
 	// like `org/repo/pull/number` or `org/repo/issue/number`.
 	ID string `json:"ext_bz_bug_id"`
 }
+
+// AdvancedQuery allows the user to specifc the Field and Operation (required) and optional
+// Value and Negation. There is no validation. If you use invalid strings for Field or Op
+// it just will be ignored by BZ.
+type AdvancedQuery struct {
+	Field  string `json:"field"`
+	Op     string `json:"op"`
+	Value  string `json:"value,omitempty"`
+	Negate bool   `json:"negate,omitempty"`
+}
+
+// Query is translated into bugzilla URL parameters.
+// https://bugzilla.readthedocs.io/en/latest/api/core/v1/bug.html#search-bugs
+type Query struct {
+	Classification []string        `json:"classification,omitempty"`
+	Product        []string        `json:"product,omitempty"`
+	Status         []string        `json:"status,omitempty"`
+	Severity       []string        `json:"severity,omitempty"`
+	Keywords       []string        `json:"keywords,omitempty"`
+	KeywordsType   string          `json:"keywords_type,omitempty"`
+	TargetRelease  []string        `json:"target_release,omitempty"`
+	Advanced       []AdvancedQuery `json:"advanced,omitempty"`
+	IncludedFields []string        `json:"icluded_fields,omitempty"`
+	Raw            string          `json:"raw,omitempty"`
+}
