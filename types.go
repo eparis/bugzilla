@@ -222,6 +222,6 @@ type Query struct {
 	KeywordsType   string          `json:"keywords_type,omitempty"`
 	TargetRelease  []string        `json:"target_release,omitempty"`
 	Advanced       []AdvancedQuery `json:"advanced,omitempty"`
-	IncludedFields []string        `json:"icluded_fields,omitempty"`
+	IncludedFields []string        `json:"included_fields,omitempty"`
 	Raw            string          `json:"raw,omitempty"`
 }
