@@ -91,6 +91,8 @@ type Bug struct {
 	Severity string `json:"severity,omitempty"`
 	// Status is the current status of the bug.
 	Status string `json:"status,omitempty"`
+	// SubComponent is the subcomponent for a given component. Not all bugzilla instances support this field.
+	SubComponent map[string][]string `json:"sub_components,omitempty"`
 	// Summary is the summary of this bug.
 	Summary string `json:"summary,omitempty"`
 	// TargetMilestone is the milestone that this bug is supposed to be fixed by, or for closed bugs, the milestone that it was fixed for.
