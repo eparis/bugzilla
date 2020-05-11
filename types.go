@@ -149,6 +149,11 @@ type BugComment struct {
 	Markdown bool   `json:"is_markdown,omitempty"`
 }
 
+// BugList holds a list of bugs. This is a normal response from the /rest/bugs/ api call
+type BugList struct {
+	Bugs []Bug `json:"bugs,omitempty"`
+}
+
 // BugUpdate contains fields to update on a Bug. See API documentation at:
 // https://bugzilla.readthedocs.io/en/latest/api/core/v1/bug.html#update-bug
 type BugUpdate struct {
