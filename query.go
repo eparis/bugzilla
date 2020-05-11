@@ -39,6 +39,9 @@ func (q *Query) Values() *url.Values {
 	for _, val := range q.Severity {
 		values.Add("bug_severity", val)
 	}
+	for _, val := range q.Component {
+		values.Add("component", val)
+	}
 	for _, val := range q.Keywords {
 		values.Add("keywords", val)
 	}
@@ -59,9 +62,9 @@ func (q *Query) Values() *url.Values {
 			values.Set(fmt.Sprintf("n%d", fieldNum), "1")
 		}
 	}
-	if len(q.IncludedFields) != 0 {
-		fields := strings.Join(q.IncludedFields, ",")
-		values.Set("included_fields", fields)
+	if len(q.IncludeFields) != 0 {
+		fields := strings.Join(q.IncludeFields, ",")
+		values.Set("include_fields", fields)
 	}
 	v, err := url.ParseQuery(q.Raw)
 	if err != nil {

@@ -222,8 +222,9 @@ type Query struct {
 	Severity       []string        `json:"severity,omitempty"`
 	Keywords       []string        `json:"keywords,omitempty"`
 	KeywordsType   string          `json:"keywords_type,omitempty"`
+	Component      []string        `json:"component,omitempty"`
 	TargetRelease  []string        `json:"target_release,omitempty"`
 	Advanced       []AdvancedQuery `json:"advanced,omitempty"`
-	IncludedFields []string        `json:"included_fields,omitempty"`
+	IncludeFields  []string        `json:"include_fields,omitempty"`
 	Raw            string          `json:"raw,omitempty"`
 }
