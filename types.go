@@ -149,6 +149,12 @@ type BugComment struct {
 	Markdown bool   `json:"is_markdown,omitempty"`
 }
 
+type BugKeywords struct {
+	Add    []string `json:"add,omitempty"`
+	Remove []string `json:"remove,omitempty"`
+	Set    []string `json:"set,omitempty"`
+}
+
 // BugList holds a list of bugs. This is a normal response from the /rest/bugs/ api call
 type BugList struct {
 	Bugs []Bug `json:"bugs,omitempty"`
@@ -158,10 +164,11 @@ type BugList struct {
 // https://bugzilla.readthedocs.io/en/latest/api/core/v1/bug.html#update-bug
 type BugUpdate struct {
 	// Status is the current status of the bug.
-	Status        string      `json:"status,omitempty"`
-	Resolution    string      `json:"resolution,omitempty"`
-	TargetRelease string      `json:"target_release,omitempty"`
-	Comment       *BugComment `json:"comment,omitempty"`
+	Status        string       `json:"status,omitempty"`
+	Resolution    string       `json:"resolution,omitempty"`
+	TargetRelease string       `json:"target_release,omitempty"`
+	Comment       *BugComment  `json:"comment,omitempty"`
+	Keywords      *BugKeywords `json:"keywords,omitempty"`
 }
 
 // ExternalBug contains details about an external bug linked to a Bugzilla bug.
