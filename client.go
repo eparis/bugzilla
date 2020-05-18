@@ -42,6 +42,10 @@ type Client interface {
 	GetExternalBugPRsOnBug(id int) ([]ExternalBug, error)
 	UpdateBug(id int, update BugUpdate) error
 	AddPullRequestAsExternalBug(id int, org, repo string, num int) (bool, error)
+
+	WithCGIClient(user, password string) Client
+	// only supported with CGI client
+	BugList(queryName, sharerID string) ([]Bug, error)
 }
 
 func NewClient(getAPIKey func() []byte, endpoint string) Client {
@@ -56,6 +60,7 @@ func NewClient(getAPIKey func() []byte, endpoint string) Client {
 type client struct {
 	logger    *logrus.Entry
 	client    *http.Client
+	cgiClient *bugzillaCGIClient
 	endpoint  string
 	getAPIKey func() []byte
 }
@@ -65,6 +70,15 @@ var _ Client = &client{}
 
 func (c *client) Endpoint() string {
 	return c.endpoint
+}
+
+func (c *client) WithCGIClient(username, password string) Client {
+	var err error
+	c.cgiClient, err = newCGIClient(c.endpoint, username, password)
+	if err != nil {
+		panic(err)
+	}
+	return c
 }
 
 func (c *client) getBugs(url string, values *url.Values, logger *logrus.Entry) ([]*Bug, error) {

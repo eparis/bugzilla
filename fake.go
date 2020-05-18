@@ -31,6 +31,14 @@ type Fake struct {
 	ExternalBugs   map[int][]ExternalBug
 }
 
+func (c *Fake) WithCGIClient(user, password string) Client {
+	panic("implement me")
+}
+
+func (c *Fake) BugList(queryName, sharerID string) ([]Bug, error) {
+	panic("implement me")
+}
+
 // Endpoint returns the endpoint for this fake
 func (c *Fake) Endpoint() string {
 	return c.EndpointString
