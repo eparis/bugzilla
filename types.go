@@ -224,6 +224,7 @@ type BugUpdate struct {
 	Resolution    string       `json:"resolution,omitempty"`
 	TargetRelease string       `json:"target_release,omitempty"`
 	DevWhiteboard string       `json:"cf_devel_whiteboard,omitempty"`
+	Whiteboard    string       `json:"whiteboard,omitempty"`
 	Comment       *BugComment  `json:"comment,omitempty"`
 	Keywords      *BugKeywords `json:"keywords,omitempty"`
 	Flags         []FlagChange `json:"flags,omitempty"`
