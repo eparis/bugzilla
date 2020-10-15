@@ -109,7 +109,7 @@ func (c *client) getBugs(url string, values *url.Values, logger *logrus.Entry) (
 // https://bugzilla.readthedocs.io/en/latest/api/core/v1/bug.html#get-bug
 func (c *client) GetBug(id int) (*Bug, error) {
 	logger := c.logger.WithFields(logrus.Fields{methodField: "GetBug", "id": id})
-	url := fmt.Sprintf("%s/rest/bug/%d", c.endpoint, id)
+	url := fmt.Sprintf("%s/rest/bug/%d?include_fields=_default,sub_components", c.endpoint, id)
 	bugs, err := c.getBugs(url, nil, logger)
 	if err != nil {
 		return nil, err
