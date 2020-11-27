@@ -111,6 +111,8 @@ type Bug struct {
 	Whiteboard string `json:"whiteboard,omitempty"`
 	// DevelWhiteboard is the value of the "devel whiteboard" field on the bug.
 	DevelWhiteboard string `json:"cf_devel_whiteboard,omitempty"`
+	// Escalation is set to "Yes" when this bug is escalated.
+	Escalation string `json:"cf_cust_facing,omitempty"`
 }
 
 type Comment struct {
