@@ -501,3 +501,119 @@ func TestGetExternalBugPRsOnBug(t *testing.T) {
 		})
 	}
 }
+
+func TestGetExternalBugs(t *testing.T) {
+	var testCases = []struct {
+		name          string
+		id            int
+		response      string
+		expectedError bool
+		expectedBugs  []ExternalBug
+	}{
+		{
+			name:          "no external bugs returns empty list",
+			id:            1705243,
+			response:      `{"bugs":[{"external_bugs":[]}],"faults":[]}`,
+			expectedError: false,
+		},
+		{
+			name:          "one external bug pointing to PR is found",
+			id:            1705244,
+			response:      `{"bugs":[{"external_bugs":[{"bug_id": 1705244,"ext_bz_bug_id":"org/repo/pull/1","type":{"url":"https://github.com/"}}]}],"faults":[]}`,
+			expectedError: false,
+			expectedBugs:  []ExternalBug{{Type: ExternalBugType{URL: "https://github.com/"}, BugzillaBugID: 1705244, ExternalBugID: "org/repo/pull/1"}},
+		},
+		{
+			name:          "multiple external bugs pointing to PRs are found",
+			id:            1705245,
+			response:      `{"bugs":[{"external_bugs":[{"bug_id": 1705245,"ext_bz_bug_id":"org/repo/pull/1","type":{"url":"https://github.com/"}},{"bug_id": 1705245,"ext_bz_bug_id":"org/repo/pull/2","type":{"url":"https://github.com/"}}]}],"faults":[]}`,
+			expectedError: false,
+			expectedBugs:  []ExternalBug{{Type: ExternalBugType{URL: "https://github.com/"}, BugzillaBugID: 1705245, ExternalBugID: "org/repo/pull/1"}, {Type: ExternalBugType{URL: "https://github.com/"}, BugzillaBugID: 1705245, ExternalBugID: "org/repo/pull/2"}},
+		},
+		{
+			name:          "external bugs pointing to issues show up, but don't contain repo, org, num metadata",
+			id:            1705246,
+			response:      `{"bugs":[{"external_bugs":[{"bug_id": 1705246,"ext_bz_bug_id":"org/repo/issues/1","type":{"url":"https://github.com/"}}]}],"faults":[]}`,
+			expectedError: false,
+			expectedBugs:  []ExternalBug{{Type: ExternalBugType{URL: "https://github.com/"}, BugzillaBugID: 1705246, ExternalBugID: "org/repo/issues/1"}},
+		},
+		{
+			name:          "external bugs pointing to other Bugzilla bugs are ignored",
+			id:            1705247,
+			response:      `{"bugs":[{"external_bugs":[{"bug_id": 3,"ext_bz_bug_id":"org/repo/pull/1","type":{"url":"https://github.com/"}}]}],"faults":[]}`,
+			expectedError: false,
+		},
+		{
+			name:          "external bugs pointing to other trackers are show up, but don't contain repo, org, num metadata",
+			id:            1705248,
+			response:      `{"bugs":[{"external_bugs":[{"bug_id": 1705248,"ext_bz_bug_id":"something","type":{"url":"https://bugs.tracker.com/"}}]}],"faults":[]}`,
+			expectedError: false,
+			expectedBugs:  []ExternalBug{{Type: ExternalBugType{URL: "https://bugs.tracker.com/"}, BugzillaBugID: 1705248, ExternalBugID: "something"}},
+		},
+		{
+			name:          "external bugs pointing to invalid pulls are ignored",
+			id:            1705249,
+			response:      `{"bugs":[{"external_bugs":[{"bug_id": 1705249,"ext_bz_bug_id":"org/repo/pull/c","type":{"url":"https://github.com/"}}]}],"faults":[]}`,
+			expectedError: false,
+			expectedBugs:  []ExternalBug{{Type: ExternalBugType{URL: "https://github.com/"}, BugzillaBugID: 1705249, ExternalBugID: "org/repo/pull/c"}},
+		},
+	}
+	testServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-BUGZILLA-API-KEY") != "api-key" {
+			t.Error("did not get api-key passed in X-BUGZILLA-API-KEY header")
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+		if r.URL.Query().Get("api_key") != "api-key" {
+			t.Error("did not get api-key passed in api_key query parameter")
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+		if r.URL.Query().Get("include_fields") != "external_bugs" {
+			t.Error("did not get external bugs passed in include_fields query parameter")
+			http.Error(w, "400 Bad Request", http.StatusBadRequest)
+			return
+		}
+		if r.Method != http.MethodGet {
+			t.Errorf("incorrect method to get a bug: %s", r.Method)
+			http.Error(w, "400 Bad Request", http.StatusBadRequest)
+			return
+		}
+		if !strings.HasPrefix(r.URL.Path, "/rest/bug/") {
+			t.Errorf("incorrect path to get a bug: %s", r.URL.Path)
+			http.Error(w, "400 Bad Request", http.StatusBadRequest)
+			return
+		}
+		if id, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/rest/bug/")); err != nil {
+			t.Errorf("malformed bug id: %s", r.URL.Path)
+			http.Error(w, "400 Bad Request", http.StatusBadRequest)
+			return
+		} else {
+			for _, testCase := range testCases {
+				if id == testCase.id {
+					if _, err := w.Write([]byte(testCase.response)); err != nil {
+						t.Fatalf("%s: failed to send response: %v", testCase.name, err)
+					}
+					return
+				}
+			}
+		}
+	}))
+	defer testServer.Close()
+	client := clientForUrl(testServer.URL)
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			prs, err := client.GetExternalBugs(testCase.id)
+			if !testCase.expectedError && err != nil {
+				t.Errorf("%s: expected no error, but got one: %v", testCase.name, err)
+			}
+			if testCase.expectedError && err == nil {
+				t.Errorf("%s: expected an error, but got none", testCase.name)
+			}
+			if actual, expected := prs, testCase.expectedBugs; !reflect.DeepEqual(actual, expected) {
+				t.Errorf("%s: got incorrect prs: %v", testCase.name, diff.ObjectReflectDiff(actual, expected))
+			}
+		})
+	}
+}
