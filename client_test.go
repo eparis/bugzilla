@@ -36,7 +36,7 @@ var (
 	bugStruct = &Bug{Alias: []string{}, AssignedTo: "Steve Kuznetsov", AssignedToDetail: &User{Email: "skuznets", ID: 381851, Name: "skuznets", RealName: "Steve Kuznetsov"}, Blocks: []int{}, CC: []string{"Sudha Ponnaganti"}, CCDetail: []User{{Email: "sponnaga", ID: 426940, Name: "sponnaga", RealName: "Sudha Ponnaganti"}}, Classification: "Red Hat", Component: []string{"Test Infrastructure"}, CreationTime: "2019-05-01T19:33:36Z", Creator: "Dan Mace", CreatorDetail: &User{Email: "dmace", ID: 330250, Name: "dmace", RealName: "Dan Mace"}, DependsOn: []int{}, ID: 1705243, IsCCAccessible: true, IsConfirmed: true, IsCreatorAccessible: true, IsOpen: true, Groups: []string{}, Keywords: []string{}, LastChangeTime: "2019-05-17T15:13:13Z", OperatingSystem: "Unspecified", Platform: "Unspecified", Priority: "unspecified", Product: "OpenShift Container Platform", SeeAlso: []string{}, Severity: "medium", Status: "VERIFIED", Summary: "[ci] cli image flake affecting *-images jobs", TargetRelease: []string{"3.11.z"}, TargetMilestone: "---", Version: []string{"3.11.0"}}
 )
 
-func clientForUrl(url string) *client {
+func clientForUrl(url string) Client {
 	return &client{
 		logger:   logrus.WithField("testing", "true"),
 		endpoint: url,
@@ -614,6 +614,109 @@ func TestGetExternalBugs(t *testing.T) {
 			if actual, expected := prs, testCase.expectedBugs; !reflect.DeepEqual(actual, expected) {
 				t.Errorf("%s: got incorrect prs: %v", testCase.name, diff.ObjectReflectDiff(actual, expected))
 			}
+		})
+	}
+}
+
+type authExpected struct {
+	bearer bool
+	query  bool
+	xbug   bool
+	err    bool
+}
+
+func testAuth(t *testing.T, authMethod string, expected authExpected) {
+	testServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := r.Header.Get("X-BUGZILLA-API-KEY")
+		if key != "api-key" && expected.xbug {
+			t.Error("did not get api-key passed in X-BUGZILLA-API-KEY header")
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+		if key != "" && !expected.xbug {
+			t.Error("Incorrectly sent X-BUGZILLA-API-KEY header")
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+
+		key = r.Header.Get("Authorization")
+		if key != "Bearer api-key" && expected.bearer {
+			t.Errorf("did not get api-key passed in Authorization header")
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+		if key != "" && !expected.bearer {
+			t.Error("Incorrectly sent Authorization Bearer header")
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+
+		key = r.URL.Query().Get("api_key")
+		if key != "api-key" && expected.query {
+			t.Error("did not get api-key passed in api_key query parameter")
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+		if key != "" && !expected.query {
+			t.Error("Incorrectly sent auth in Query")
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			return
+		}
+	}))
+	defer testServer.Close()
+
+	client := clientForUrl(testServer.URL)
+	err := client.SetAuthMethod(authMethod)
+	if err != nil {
+		if expected.err {
+			return // SUCCESS!
+		}
+		t.Errorf("Got error setting auth method: %v", err)
+	}
+
+	_, _ = client.GetBug(1)
+}
+
+func TestAuth(t *testing.T) {
+	var testCases = map[string]struct {
+		method   string
+		expected authExpected
+	}{
+		AuthBearer: {
+			method: AuthBearer,
+			expected: authExpected{
+				bearer: true,
+			},
+		},
+		AuthQuery: {
+			method: AuthQuery,
+			expected: authExpected{
+				query: true,
+			},
+		},
+		AuthXBugzillaAPIKey: {
+			method: AuthXBugzillaAPIKey,
+			expected: authExpected{
+				xbug: true,
+			},
+		},
+		"garbagein": {
+			method: "garbagein",
+			expected: authExpected{
+				err: true,
+			},
+		},
+		"no auth": {
+			method: "",
+			expected: authExpected{
+				query: true,
+				xbug:  true,
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			testAuth(t, tc.method, tc.expected)
 		})
 	}
 }
